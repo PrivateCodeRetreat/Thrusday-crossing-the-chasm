@@ -2,30 +2,47 @@ package org.samples;
 
 
 import org.approvaltests.Approvals;
+import org.approvaltests.core.Options;
+import org.approvaltests.reporters.QuietReporter;
 import org.junit.jupiter.api.Test;
+import org.lambda.actions.Action0;
+import org.lambda.query.Queryable;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+public class SampleTests {
+    @Test
+    public void testEverything() {
+        Board board = new Board();
+        for (int i = 0; i <= 8; i++) {
+            int y = i * 5 + 2;
+            addToBoard(board, i, 2, y, true);
+            addToBoard(board, i, 8, y, false);
+        }
+        String output = "" + board;
+        board = board.advanceTurn();
+        output += "\n\nAdvance turn\n\n";
+        output += board;
+        Approvals.verify(output, new Options(QuietReporter.INSTANCE));
+    }
 
-public class SampleTests
-{
-  @Test
-  public void testNormalJunit()
-  {
-    assertEquals(5, 5);
-  }
-  @Test
-  public void testWithApprovalTests()
-  {
-    Approvals.verify("Hello World");
-  }
-  /**
-    *  note: this requires GSON which is currently added in the pom.xml file. 
-    *  This is only required if you want to use the VerifyAsJson.
-    **/
-  @Test
-  public void testJson()
-  {
-    Person hero = new Person("jayne", "cobb", true, 38);
-    Approvals.verifyAsJson(hero);
-  }
+    private void addToBoard(Board board, int numberOfNeighbors, int x, int y, boolean isCenterAlive) {
+        if (isCenterAlive) {
+            board.makeCellAlive(x, y);
+        }
+        Queryable<Action0> cells = Queryable.as(
+                () -> board.makeCellAlive(x, y - 1),
+                () -> board.makeCellAlive(x, y + 1),
+                () -> board.makeCellAlive(x - 1, y),
+                () -> board.makeCellAlive(x + 1, y),
+
+                () -> board.makeCellAlive(x - 1, y - 1),
+                () -> board.makeCellAlive(x + 1, y + 1),
+                () -> board.makeCellAlive(x + 1, y - 1),
+                () -> board.makeCellAlive(x - 1, y + 1)
+                );
+        for (int i = 0; i < numberOfNeighbors && i < cells.size(); i++) {
+            cells.get(i).call();
+        }
+
+    }
+
 }
